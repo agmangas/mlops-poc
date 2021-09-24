@@ -19,6 +19,7 @@ fi
 CURR_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
 TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kfserving-poc
+KFSERVING_REPO_PATH=${TMP_PATH}/kfserving
 
 rm -fr ${TMP_PATH} && mkdir -p ${TMP_PATH}
 
@@ -26,9 +27,9 @@ git clone \
 --depth 1 \
 --branch ${KFSERVING_TREEISH} \
 git@github.com:kserve/kserve.git \
-${TMP_PATH}/kfserving
+${KFSERVING_REPO_PATH}
 
-cd ${TMP_PATH}/kfserving
+cd ${KFSERVING_REPO_PATH}
 
 ./hack/quick_install.sh
 
@@ -40,6 +41,8 @@ do
     -f ./docs/samples/${KFSERVING_API_VERSION}/sklearn/v1/sklearn.yaml \
     -n kfserving-test && break || sleep 30
 done
+
+sleep 10
 
 for i in {1..5}
 do
@@ -59,7 +62,7 @@ export SERVICE_HOSTNAME=\$(kubectl get inferenceservice sklearn-iris -n kfservin
 curl -v \
 -H "Host: \${SERVICE_HOSTNAME}" \
 http://\${INGRESS_HOST}:\${INGRESS_PORT}/v1/models/sklearn-iris:predict \
--d @${TMP_PATH}/kfserving/docs/samples/${KFSERVING_API_VERSION}/sklearn/v1/iris-input.json
+-d @${KFSERVING_REPO_PATH}/docs/samples/${KFSERVING_API_VERSION}/sklearn/v1/iris-input.json
 
 The Models UI web app is available on:
 
