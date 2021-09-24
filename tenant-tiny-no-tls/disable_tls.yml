@@ -1,0 +1,10 @@
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: storage
+  namespace: minio-tenant
+spec:
+  certConfig: null
+  requestAutoCert: false
+  externalCaCertSecret: null
+  externalCertSecret: null

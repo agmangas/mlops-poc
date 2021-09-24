@@ -16,7 +16,6 @@ if [[ -z "$SKIP_MINIKUBE_START" ]]; then
     --kubernetes-version=${KUBERNETES_VERSION}
 fi
 
-CURR_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
 TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kfserving-poc
 KFSERVING_REPO_PATH=${TMP_PATH}/kfserving
