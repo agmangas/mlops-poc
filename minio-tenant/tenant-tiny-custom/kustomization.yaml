@@ -5,4 +5,4 @@ resources:
   - services.yml
 namespace: tenant-tiny
 patchesStrategicMerge:
-  - disable_tls.yml
+  - disable-tls.yml

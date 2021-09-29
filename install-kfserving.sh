@@ -9,7 +9,7 @@ set -x
 : ${KFSERVING_TREEISH:="v0.6.1"}
 : ${KFSERVING_API_VERSION:="v1beta1"}
 
-if [[ -z "$SKIP_MINIKUBE_START" ]]; then
+if [[ -n "$START_MINIKUBE" ]]; then
     minikube start \
     --memory=${MINIKUBE_MEMORY} \
     --cpus=${MINIKUBE_CPUS} \
@@ -50,8 +50,12 @@ do
     -n kfserving-test && break || sleep 30
 done
 
-cat << EOF
+set +x
 
+GREEN='\033[0;32m'
+RESET='\033[0m'
+
+HELP=$(cat << EOF
 To send a request to the example sklearn service, run "minikube tunnel" in another terminal and then use the following cURL command.
 
 export INGRESS_HOST=\$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -67,3 +71,6 @@ The Models UI web app is available on:
 
 http://\${INGRESS_HOST}:\${INGRESS_PORT}/models/
 EOF
+)
+
+echo -e "${GREEN}${HELP}${RESET}"

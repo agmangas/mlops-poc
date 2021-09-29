@@ -26,8 +26,9 @@ helm install \
 --set tenants=null \
 ${MINIO_OP_REPO_PATH}/helm/minio-operator
 
-cp -r ${CURR_DIR}/tenant-tiny-no-tls ${MINIO_OP_REPO_PATH}/examples/kustomization/
-kubectl apply -k ${MINIO_OP_REPO_PATH}/examples/kustomization/tenant-tiny-no-tls
+kubectl apply -k ${CURR_DIR}/minio-tenant/tenant-tiny-custom
+
+set +x
 
 GREEN='\033[0;32m'
 RESET='\033[0m'
