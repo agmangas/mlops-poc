@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio-lb
+  name: minio-service
 spec:
   selector:
     v1.min.io/tenant: storage-tiny
@@ -9,4 +9,19 @@ spec:
     - port: 9000
       protocol: TCP
       targetPort: 9000
-  type: LoadBalancer
+      nodePort: 30100
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: console-service
+spec:
+  selector:
+    v1.min.io/tenant: storage-tiny
+  ports:
+    - port: 9090
+      protocol: TCP
+      targetPort: 9090
+      nodePort: 30200
+  type: NodePort

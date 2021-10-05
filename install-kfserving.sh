@@ -3,18 +3,8 @@
 set -e
 set -x
 
-: ${MINIKUBE_MEMORY:="11980"}
-: ${MINIKUBE_CPUS:="4"}
-: ${KUBERNETES_VERSION:="v1.20.2"}
 : ${KFSERVING_TREEISH:="v0.6.1"}
 : ${KFSERVING_API_VERSION:="v1beta1"}
-
-if [[ -n "$START_MINIKUBE" ]]; then
-    minikube start \
-    --memory=${MINIKUBE_MEMORY} \
-    --cpus=${MINIKUBE_CPUS} \
-    --kubernetes-version=${KUBERNETES_VERSION}
-fi
 
 TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kfserving-poc
@@ -25,7 +15,7 @@ rm -fr ${TMP_PATH} && mkdir -p ${TMP_PATH}
 git clone \
 --depth 1 \
 --branch ${KFSERVING_TREEISH} \
-git@github.com:kserve/kserve.git \
+https://github.com/kserve/kserve.git \
 ${KFSERVING_REPO_PATH}
 
 cd ${KFSERVING_REPO_PATH}

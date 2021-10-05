@@ -16,7 +16,7 @@ trap 'rm -fr ${MINIO_OP_REPO_PATH}' EXIT
 git clone \
 --depth 1 \
 --branch ${MINIO_OP_TREEISH} \
-git@github.com:minio/operator.git \
+https://github.com/minio/operator.git \
 ${MINIO_OP_REPO_PATH}
 
 helm install \
@@ -48,7 +48,7 @@ kubectl --namespace tenant-tiny port-forward --address=0.0.0.0 svc/minio 80:80
 
 You can test access to the example Tenant with the MinIO client:
 
-docker run --rm -it --entrypoint=/bin/bash minio/mc -c "mc alias set tiny http://$(hostname) console console123 && mc config host list"
+docker run --rm -it --entrypoint=/bin/bash minio/mc -c "mc alias set tiny http://$(hostname) minio minio123 && mc config host list"
 EOF
 )
 
