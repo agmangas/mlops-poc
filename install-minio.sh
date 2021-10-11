@@ -44,11 +44,11 @@ kubectl get secret $(kubectl get serviceaccount console-sa --namespace ${MINIO_N
 
 To access the example Tenant, forward the port for the Tenant minio service:
 
-kubectl --namespace tenant-tiny port-forward --address=0.0.0.0 svc/minio 80:80
+kubectl --namespace tenant-tiny port-forward --address=0.0.0.0 svc/minio 8080:80
 
 You can test access to the example Tenant with the MinIO client:
 
-docker run --rm -it --entrypoint=/bin/bash minio/mc -c "mc alias set tiny http://$(hostname) minio minio123 && mc config host list"
+docker run --rm -it --entrypoint=/bin/bash minio/mc -c "mc alias set tiny http://$(hostname):8080 minio minio123 && mc --debug tree tiny"
 EOF
 )
 
