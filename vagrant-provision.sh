@@ -10,9 +10,17 @@ set -x
 : ${KIND_CONFIG:="/vagrant/kind-config.yml"}
 : ${KUBECTL_VERSION:="v1.21.5"}
 
+debconf-set-selections <<EOF
+iptables-persistent iptables-persistent/autosave_v4 boolean true
+iptables-persistent iptables-persistent/autosave_v6 boolean true
+EOF
+
+DEBIAN_FRONTEND=noninteractive apt-get update -y && apt-get install -y \
+curl \
+iptables-persistent
+
 # Docker and Compose
 
-apt-get update -y && apt-get install -y curl
 curl -fsSL https://get.docker.com -o get-docker.sh
 VERSION=${VERSION_DOCKER} sh get-docker.sh
 usermod -aG docker ${UNPRIVILEGED_USER}
@@ -37,13 +45,14 @@ curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && \
 chmod +x ./kind && \
 mv ./kind /usr/local/bin/kind
 sudo -H -u ${UNPRIVILEGED_USER} kind create cluster --image kindest/node:${KIND_TAG} --config ${KIND_CONFIG}
+mkdir -p ~/.kube && (cp /home/${UNPRIVILEGED_USER}/.kube/config ~/.kube/config || true)
 
 # Kubectl
 
 curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
 install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
 kubectl version --client && \
-sudo -H -u ${UNPRIVILEGED_USER} kubectl config current-context
+kubectl config current-context
 
 # Helm
 
@@ -52,15 +61,15 @@ helm version
 
 # MetalLB
 
-sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/namespace.yaml
-sudo -H -u ${UNPRIVILEGED_USER} kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
-sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/metallb.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/namespace.yaml
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/metallb.yaml
 
 sleep 30
 
 while true
 do
-    LB_PODS=$(sudo -H -u ${UNPRIVILEGED_USER} kubectl get pods -n metallb-system)
+    LB_PODS=$(kubectl get pods -n metallb-system)
     NUM_PENDING=$(echo -n ${LB_PODS} | grep -Fo "Pending" | wc -l)
     
     if [[ $NUM_PENDING -eq 0 ]]; then
@@ -73,7 +82,7 @@ done
 DOCKER_CIDR=$(echo $(docker network inspect -f '{{.IPAM.Config}}' kind) | grep -aoP '\d+\.\d+\.\d+\.\d+\/\d+')
 BASE_IP=$(echo ${DOCKER_CIDR} | grep -aoP "^\d+\.\d+\.\d+")
 
-cat <<EOF | sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ConfigMap
 metadata:
