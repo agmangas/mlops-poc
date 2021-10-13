@@ -36,17 +36,54 @@ mc --version
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && \
 chmod +x ./kind && \
 mv ./kind /usr/local/bin/kind
-
-su - ${UNPRIVILEGED_USER} -c "kind create cluster --image kindest/node:${KIND_TAG} --config ${KIND_CONFIG}"
+sudo -H -u ${UNPRIVILEGED_USER} kind create cluster --image kindest/node:${KIND_TAG} --config ${KIND_CONFIG}
 
 # Kubectl
 
 curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
 install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
 kubectl version --client && \
-su - ${UNPRIVILEGED_USER} -c "kubectl config current-context"
+sudo -H -u ${UNPRIVILEGED_USER} kubectl config current-context
 
 # Helm
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
 helm version
+
+# MetalLB
+
+sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/namespace.yaml
+sudo -H -u ${UNPRIVILEGED_USER} kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/master/manifests/metallb.yaml
+
+sleep 30
+
+while true
+do
+    LB_PODS=$(sudo -H -u ${UNPRIVILEGED_USER} kubectl get pods -n metallb-system)
+    NUM_PENDING=$(echo -n ${LB_PODS} | grep -Fo "Pending" | wc -l)
+    
+    if [[ $NUM_PENDING -eq 0 ]]; then
+        break
+    fi
+    
+    sleep 15
+done
+
+DOCKER_CIDR=$(echo $(docker network inspect -f '{{.IPAM.Config}}' kind) | grep -aoP '\d+\.\d+\.\d+\.\d+\/\d+')
+BASE_IP=$(echo ${DOCKER_CIDR} | grep -aoP "^\d+\.\d+\.\d+")
+
+cat <<EOF | sudo -H -u ${UNPRIVILEGED_USER} kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - ${BASE_IP}.200-${BASE_IP}.250
+EOF
