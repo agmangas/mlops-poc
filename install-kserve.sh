@@ -3,22 +3,21 @@
 set -e
 set -x
 
-: ${KFSERVING_TREEISH:="v0.7.0"}
+: ${KSERVE_TREEISH:="v0.7.0"}
 
-CURR_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
 TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kfserving-poc
-KFSERVING_REPO_PATH=${TMP_PATH}/kfserving
+KSERVE_REPO_PATH=${TMP_PATH}/kfserving
 
 rm -fr ${TMP_PATH} && mkdir -p ${TMP_PATH}
 
 git clone \
 --depth 1 \
---branch ${KFSERVING_TREEISH} \
+--branch ${KSERVE_TREEISH} \
 https://github.com/kserve/kserve.git \
-${KFSERVING_REPO_PATH}
+${KSERVE_REPO_PATH}
 
-cd ${KFSERVING_REPO_PATH}
+cd ${KSERVE_REPO_PATH}
 
 ./hack/quick_install.sh
 
@@ -28,7 +27,9 @@ sleep 10
 
 for i in {1..5}
 do
-    kubectl apply -f ${CURR_DIR}/sklearn.yaml -n kserve-test && break || sleep 30
+    kubectl apply \
+    -f ${KSERVE_REPO_PATH}/docs/samples/v1beta1/sklearn/v1/sklearn.yaml \
+    -n kserve-test && break || sleep 30
 done
 
 sleep 10

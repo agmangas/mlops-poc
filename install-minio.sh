@@ -26,7 +26,11 @@ helm install \
 --set tenants=null \
 ${MINIO_OP_REPO_PATH}/helm/minio-operator
 
-kubectl apply -k ${CURR_DIR}/minio-tenant/tenant-tiny-custom
+if [ -d "/vagrant/minio-tenant" ]; then
+    kubectl apply -k /vagrant/minio-tenant/tenant-tiny-custom
+else 
+    kubectl apply -k ${CURR_DIR}/minio-tenant/tenant-tiny-custom
+fi
 
 set +x
 
