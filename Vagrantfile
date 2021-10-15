@@ -3,7 +3,7 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "mlops-poc"
   
   config.vm.provider "virtualbox" do |v|
-    v.memory = 11980
+    v.memory = 12288
     v.cpus = 4
   end
   
