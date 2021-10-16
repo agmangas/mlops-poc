@@ -30,7 +30,7 @@ docker-compose --version
 
 # Python 3
 
-apt-get update -y && apt-get install -y python3 python-is-python3
+apt-get update -y && apt-get install -y python3 python-is-python3 python3-pip
 
 # MinIO client
 
