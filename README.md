@@ -1,5 +1,7 @@
 # MLOps Proof of Concept
 
+![Design diagram](diagram.png "Design diagram")
+
 ```
 $ virtualenv --python python3.7 ./scripts/.venv
 $ source ./scripts/.venv/bin/activate
