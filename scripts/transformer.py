@@ -21,6 +21,14 @@ class SklearnTransformer(kserve.KFModel):
         _logger.info("Loading transformer: %s", transformer_path)
         self._transformer = joblib.load(transformer_path)
 
+    def _transform(self, item):
+        transformed = self._transformer.transform(item)
+
+        try:
+            return transformed.toarray().flatten().tolist()
+        except:
+            return transformed.flatten().tolist()
+
     def preprocess(self, inputs: Dict) -> Dict:
         _logger.debug(
             "Preprocess request:\n%s",
@@ -28,8 +36,7 @@ class SklearnTransformer(kserve.KFModel):
 
         return {
             "instances": [
-                self._transformer.transform(item).toarray().flatten().tolist()
-                for item in inputs["instances"]
+                self._transform(item) for item in inputs["instances"]
             ]
         }
 
