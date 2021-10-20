@@ -59,7 +59,7 @@ The next step is to prepare the development environment; this is a fairly compli
 
 > Please note that the VM requires 12GB of memory and 5 CPU cores.
 
-The following command will initialize an Ubuntu Focal VM and run all the provisioning scripts to:
+The following command will initialize an Ubuntu VM and run all the provisioning scripts to:
 
 - Install Docker.
 - Install [Kind](https://kind.sigs.k8s.io/) and create a Kubernetes cluster.
@@ -122,11 +122,11 @@ X-Xss-Protection: 1; mode=block
 mc: <DEBUG> Response Time:  3.774223ms
 ```
 
-To deploy an inference service on KServe we need to:
+In KServe, an `InferenceService` is the entity that encapsulates the low-level components that are required to deploy an AI model to production, for example, a model storage initializer, a _predictor_ service, and a _transformer_ service. More specifically, to deploy an `InferenceService` we need to:
 
 * Upload the `model.joblib` and `transformer.joblib` files to the object storage service.
 * Create the `Secret` and `ServiceAccount` resources required by KServe to connect to MinIO.
-* Create the `InferenceService` resource, including the appropriate `transformer` pre-processing step.
+* Create the `InferenceService` resource, including the `transformer` pre-processing step.
 
 These steps can be automated with the `deploy_service.py` script, which takes the following arguments:
 
