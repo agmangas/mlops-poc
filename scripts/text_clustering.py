@@ -162,7 +162,7 @@ def parse_options():
     return args
 
 
-def log_cluster_top_terms(args, svd, km, vectorizer, n_clusters):
+def log_cluster_top_terms(args, svd, km, vectorizer, n_clusters, n_terms=10):
     if args.n_components and svd:
         original_space_centroids = svd.inverse_transform(
             km.cluster_centers_)
@@ -174,8 +174,9 @@ def log_cluster_top_terms(args, svd, km, vectorizer, n_clusters):
     terms = vectorizer.get_feature_names()
 
     top_terms = {
-        "Cluster {:02d}".format(i): [terms[ind] for ind in order_centroids[i, :10]]
-        for i in range(n_clusters)
+        "Cluster {:02d}".format(i): " ".join([
+            terms[ind] for ind in order_centroids[i, :n_terms]
+        ]) for i in range(n_clusters)
     }
 
     _logger.debug("Top terms per cluster:\n%s", pprint.pformat(top_terms))
@@ -205,17 +206,22 @@ def main():
         minibatch=args.minibatch,
         verbose=args.verbose)
 
+    transformer = make_pipeline(vectorizer, svd) if svd else vectorizer
+
     if args.output_dir:
         model_path = os.path.join(args.output_dir, "model.joblib")
         _logger.info("Saving model: %s", model_path)
         joblib.dump(km, model_path)
         transformer_path = os.path.join(args.output_dir, "transformer.joblib")
         _logger.info("Saving vectorizer: %s", transformer_path)
-        joblib.dump(vectorizer, transformer_path)
+        joblib.dump(transformer, transformer_path)
 
     log_cluster_top_terms(args, svd, km, vectorizer, n_clusters)
 
-    # print(km.predict(vectorizer.transform(["mac apple rom scsi disk windows pc"])))
+    test_doc = "mac apple rom scsi disk windows pc"
+    features = transformer.transform([test_doc])
+    prediction = km.predict(features)
+    _logger.debug("Example: '%s' -> Cluster %s", test_doc, prediction)
 
 
 if __name__ == "__main__":
