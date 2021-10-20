@@ -32,10 +32,12 @@ def parse_options():
     parser.add_argument("--log-level", default="DEBUG")
     parser.add_argument("--access-key", default="minio")
     parser.add_argument("--secret-key", default="minio123")
-    parser.add_argument("--model", default=None)
+    parser.add_argument("--model-path", default=None)
     parser.add_argument("--model-name", default=None)
     parser.add_argument("--bucket",  default=None)
     parser.add_argument("--namespace",  default=None)
+    parser.add_argument("--transformer-path", default=None)
+    parser.add_argument("--transformer-image", default=None)
 
     args = parser.parse_args()
 
@@ -101,7 +103,7 @@ def build_s3_secrets(minio_endpoint, access_key, secret_key, secret_name="s3cred
     return file_path
 
 
-def build_inference_service(model_name, bucket_name, sa_name="sa"):
+def build_inference_service(model_name, bucket_name, sa_name="sa", transformer_image=None):
     inference_service = {
         "apiVersion": "serving.kserve.io/v1beta1",
         "kind": "InferenceService",
@@ -117,6 +119,21 @@ def build_inference_service(model_name, bucket_name, sa_name="sa"):
             }
         }
     }
+
+    if transformer_image:
+        inference_service["spec"].update({
+            "transformer": {
+                "serviceAccountName": sa_name,
+                "containers": [{
+                    "image": transformer_image,
+                    "name": f"{model_name}-transformer",
+                    "env": [{
+                        "name": "STORAGE_URI",
+                        "value": f"s3://{bucket_name}/transformer.joblib"
+                    }]
+                }]
+            }
+        })
 
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, "inference-service.yaml")
@@ -135,6 +152,9 @@ def main():
     coloredlogs.install(level=args.log_level)
 
     _logger.debug("Arguments: %s", args)
+    
+    if args.transformer_path:
+        assert args.transformer_image, "Undefined transformer image"
 
     s3 = boto3.resource(
         "s3",
@@ -146,19 +166,20 @@ def main():
 
     rand_key = int(random.random() * 1e6)
 
-    model_path = args.model or get_default_model()
+    model_path = args.model_path or get_default_model()
     model_name = args.model_name or f"model-{rand_key}"
-
     _logger.info("Using model %s from %s", model_name, model_path)
 
     bucket_name = args.bucket or model_name
     bucket = s3.create_bucket(Bucket=bucket_name)
-
     _logger.info("Created bucket: %s", bucket)
 
     bucket.upload_file(model_path, "model.joblib")
+    _logger.info("Uploaded model: %s", model_path)
 
-    _logger.info("Uploaded file: %s", model_path)
+    if args.transformer_path:
+        bucket.upload_file(args.transformer_path, "transformer.joblib")
+        _logger.info("Uploaded transformer: %s", args.transformer_path)
 
     namespace = args.namespace or f"kserve-{rand_key}"
 
@@ -171,9 +192,12 @@ def main():
 
     sh.kubectl("apply", "-n", namespace, "-f", s3_secrets_config)
 
+    transformer_image = args.transformer_image if args.transformer_path else None
+
     inf_serv_config = build_inference_service(
         model_name=model_name,
-        bucket_name=bucket_name)
+        bucket_name=bucket_name,
+        transformer_image=transformer_image)
 
     sh.kubectl("apply", "-n", namespace, "-f", inf_serv_config)
 

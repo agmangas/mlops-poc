@@ -1,22 +1,24 @@
 # Based on the following scikit-learn example:
 # https://scikit-learn.org/stable/auto_examples/text/plot_document_clustering.html#sphx-glr-auto-examples-text-plot-document-clustering-py
 
+import argparse
 import logging
+import os
 import pprint
-import sys
-from optparse import OptionParser
 from time import time
 
 import coloredlogs
+import joblib
 import numpy as np
 from sklearn import metrics
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import (HashingVectorizer,
-                                             TfidfTransformer, TfidfVectorizer)
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import Normalizer
+
+_N_FEATURES = 10000
 
 _logger = logging.getLogger()
 
@@ -36,34 +38,17 @@ def load_dataset(categories=None):
     return dataset
 
 
-def extract_features(dataset, use_hashing, use_idf, n_features):
+def extract_features(dataset):
     t0 = time()
 
     _logger.info("Extracting features")
 
-    if use_hashing:
-        if use_idf:
-            # Perform an IDF normalization on the output of HashingVectorizer
-            hasher = HashingVectorizer(
-                n_features=n_features,
-                stop_words="english",
-                alternate_sign=False,
-                norm=None)
-
-            vectorizer = make_pipeline(hasher, TfidfTransformer())
-        else:
-            vectorizer = HashingVectorizer(
-                n_features=n_features,
-                stop_words="english",
-                alternate_sign=False,
-                norm="l2")
-    else:
-        vectorizer = TfidfVectorizer(
-            max_df=0.5,
-            max_features=n_features,
-            min_df=2,
-            stop_words="english",
-            use_idf=use_idf)
+    vectorizer = TfidfVectorizer(
+        max_df=0.5,
+        max_features=_N_FEATURES,
+        min_df=2,
+        stop_words="english",
+        use_idf=True)
 
     X = vectorizer.fit_transform(dataset.data)
 
@@ -152,96 +137,85 @@ def fit_clustering(X, n_clusters, labels, minibatch, verbose):
 
 
 def parse_options():
-    op = OptionParser()
+    parser = argparse.ArgumentParser()
 
-    op.add_option(
+    parser.add_argument(
         "--lsa",
-        dest="n_components", type="int",
+        dest="n_components", type=int,
         help="Preprocess documents with latent semantic analysis.")
 
-    op.add_option(
+    parser.add_argument(
         "--no-minibatch",
         action="store_false", dest="minibatch", default=True,
         help="Use ordinary k-means algorithm (in batch mode).")
 
-    op.add_option(
-        "--no-idf",
-        action="store_false", dest="use_idf", default=True,
-        help="Disable Inverse Document Frequency feature weighting.")
-
-    op.add_option(
-        "--use-hashing",
-        action="store_true", default=False,
-        help="Use a hashing feature vectorizer")
-
-    op.add_option(
-        "--n-features", type=int, default=10000,
-        help="Maximum number of features (dimensions)"
-        " to extract from text.")
-
-    op.add_option(
+    parser.add_argument(
         "--verbose",
         action="store_true", dest="verbose", default=False,
         help="Print progress reports inside k-means algorithm.")
 
-    op.add_option(
-        "--log-level",
-        default="DEBUG",
-        help="Log level.")
+    parser.add_argument("--log-level", default="DEBUG")
+    parser.add_argument("--output-dir", default=None)
 
-    (opts, args) = op.parse_args(sys.argv[1:])
+    args = parser.parse_args()
 
-    if len(args) > 0:
-        op.error("This script takes no arguments.")
-        sys.exit(1)
+    return args
 
-    return opts
+
+def log_cluster_top_terms(args, svd, km, vectorizer, n_clusters):
+    if args.n_components and svd:
+        original_space_centroids = svd.inverse_transform(
+            km.cluster_centers_)
+
+        order_centroids = original_space_centroids.argsort()[:, ::-1]
+    else:
+        order_centroids = km.cluster_centers_.argsort()[:, ::-1]
+
+    terms = vectorizer.get_feature_names()
+
+    top_terms = {
+        "Cluster {:02d}".format(i): [terms[ind] for ind in order_centroids[i, :10]]
+        for i in range(n_clusters)
+    }
+
+    _logger.debug("Top terms per cluster:\n%s", pprint.pformat(top_terms))
 
 
 def main():
-    opts = parse_options()
-    coloredlogs.install(level=opts.log_level)
+    args = parse_options()
+    coloredlogs.install(level=args.log_level)
+
+    _logger.debug("Arguments: %s", args)
+
     dataset = load_dataset()
     labels = dataset.target
     n_clusters = np.unique(labels).shape[0]
-
-    X, vectorizer = extract_features(
-        dataset=dataset,
-        use_hashing=opts.use_hashing,
-        use_idf=opts.use_idf,
-        n_features=opts.n_features)
-
+    X, vectorizer = extract_features(dataset=dataset)
     svd = None
 
-    if opts.n_components:
+    if args.n_components:
         X, svd = perform_dimensionality_reduction(
             X=X,
-            n_components=opts.n_components)
+            n_components=args.n_components)
 
     km = fit_clustering(
         X=X,
         n_clusters=n_clusters,
         labels=labels,
-        minibatch=opts.minibatch,
-        verbose=opts.verbose)
+        minibatch=args.minibatch,
+        verbose=args.verbose)
 
-    if not opts.use_hashing:
-        if opts.n_components and svd:
-            original_space_centroids = svd.inverse_transform(
-                km.cluster_centers_)
+    if args.output_dir:
+        model_path = os.path.join(args.output_dir, "model.joblib")
+        _logger.info("Saving model: %s", model_path)
+        joblib.dump(km, model_path)
+        transformer_path = os.path.join(args.output_dir, "transformer.joblib")
+        _logger.info("Saving vectorizer: %s", transformer_path)
+        joblib.dump(vectorizer, transformer_path)
 
-            order_centroids = original_space_centroids.argsort()[:, ::-1]
-        else:
-            order_centroids = km.cluster_centers_.argsort()[:, ::-1]
+    log_cluster_top_terms(args, svd, km, vectorizer, n_clusters)
 
-        terms = vectorizer.get_feature_names()
-
-        top_terms = {
-            "Cluster {:02d}".format(i): [terms[ind] for ind in order_centroids[i, :10]]
-            for i in range(n_clusters)
-        }
-
-        _logger.debug("Top terms per cluster:\n%s", pprint.pformat(top_terms))
+    # print(km.predict(vectorizer.transform(["mac apple rom scsi disk windows pc"])))
 
 
 if __name__ == "__main__":

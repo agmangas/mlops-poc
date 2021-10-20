@@ -7,7 +7,7 @@ set -x
 : ${CONTAINER_NAME:="kserve_proxy"}
 : ${IMAGE_NAME:="kserve-proxy"}
 
-TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
+TMP_DIR=$(python3 -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kserve-proxy
 
 rm -fr ${TMP_PATH} && mkdir -p ${TMP_PATH} && cd ${TMP_PATH}

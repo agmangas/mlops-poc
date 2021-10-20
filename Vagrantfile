@@ -4,7 +4,7 @@ Vagrant.configure("2") do |config|
   
   config.vm.provider "virtualbox" do |v|
     v.memory = 12288
-    v.cpus = 4
+    v.cpus = 5
   end
   
   config.vm.provision "shell", path: "vagrant-provision.sh"

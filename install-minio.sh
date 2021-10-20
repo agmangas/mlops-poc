@@ -7,7 +7,7 @@ set -x
 : ${MINIO_OP_TREEISH:="v4.2.10"}
 
 CURR_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
-TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
+TMP_DIR=$(python3 -c "import tempfile; print(tempfile.gettempdir());")
 MINIO_OP_REPO_PATH=${TMP_DIR}/minio-operator
 
 rm -fr ${MINIO_OP_REPO_PATH}

@@ -145,6 +145,7 @@ cython_debug/
 
 istio-*/
 *.joblib
+scripts/.venv
 
 ## Vagrant
 ##########

@@ -5,7 +5,7 @@ set -x
 
 : ${KSERVE_TREEISH:="v0.7.0"}
 
-TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
+TMP_DIR=$(python3 -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kfserving-poc
 KSERVE_REPO_PATH=${TMP_PATH}/kfserving
 

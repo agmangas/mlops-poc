@@ -11,7 +11,7 @@ set -x
 : ${MODEL_PATH:=""}
 : ${MODEL_NAME:=""}
 
-TMP_DIR=$(python -c "import tempfile; print(tempfile.gettempdir());")
+TMP_DIR=$(python3 -c "import tempfile; print(tempfile.gettempdir());")
 TMP_PATH=${TMP_DIR}/kserve-deploy-inference
 
 rm -fr ${TMP_PATH} && mkdir -p ${TMP_PATH}
