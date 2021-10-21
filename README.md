@@ -249,7 +249,7 @@ vagrant@mlops-poc:~$ kubectl logs -n kserve-textclustering textclustering-predic
 [...]
 ```
 
-At this point, the `textclustering` _inference service_ is finally ready to serve requests to the text clustering model. There is an example request below that uses the [V1 Data Plane protocol](textclustering) interface. Note how the raw document goes through the _transformer_ for feature extraction before being fed to the clustering model.
+At this point, the `textclustering` _inference service_ is finally ready to serve requests to the text clustering model. There is an example request below that uses the [V1 Data Plane protocol](https://kserve.github.io/website/modelserving/data_plane/) interface. Note how the raw document goes through the _transformer_ for feature extraction before being fed to the clustering model.
 
 ```
 $ curl -v \
