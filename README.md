@@ -20,34 +20,36 @@ Save the top terms of each cluster that appear in the command output for later. 
 
 ```
 [...]
-2021-10-20 16:34:58 agmangas-macpro.local root[16494] DEBUG Top terms per cluster:
-{'Cluster 00': 'windows dos ms os file microsoft com nt run use',
- 'Cluster 01': 'au virginia ohio state magnus acs university australia oz '
-               'monash',
- 'Cluster 02': 'com article sun posting netcom att nntp host distribution ibm',
- 'Cluster 03': 'keith caltech morality livesey sgi objective moral atheists '
-               'cco com',
- 'Cluster 04': 'card video monitor mac apple sale thanks bus university modem',
- 'Cluster 05': 'cc access com columbia andrew digex cmu cramer henry posting',
- 'Cluster 06': 'car com hp bike like new cars just good article',
- 'Cluster 07': 'pitt geb banks gordon cs pittsburgh cadre n3jxp dsl chastity',
- 'Cluster 08': 'israel israeli jews armenian arab jewish people turkish '
-               'armenians war',
- 'Cluster 09': 'nasa gov space jpl larc shuttle jsc center research gsfc',
- 'Cluster 10': 'ca game team games hockey year players play season win',
- 'Cluster 11': 'university posting host nntp thanks washington distribution '
-               'mail usa article',
- 'Cluster 12': 'people com don gun like just think government time article',
- 'Cluster 13': 'stratus sw cdt com rocket vos tavares computer investors '
-               'packet',
- 'Cluster 14': 'key clipper chip encryption com keys escrow government netcom '
-               'algorithm',
- 'Cluster 15': 'drive scsi ide disk drives hard controller floppy com hd',
- 'Cluster 16': 'cs se nyx dept science university computer utexas du posting',
- 'Cluster 17': 'uk ac university demon article cam dcs ed 44 mathew',
- 'Cluster 18': 'file window graphics program files image com use software help',
- 'Cluster 19': 'god jesus bible christian christ church christians people '
-               'believe faith'}
+2021-10-21 07:44:26 fbdb02abf432 root[42] DEBUG Top terms per cluster:
+{'Cluster 00': 'uk ac ca article university posting com host nntp virginia',
+ 'Cluster 01': 'windows file dos files program com ms use window help',
+ 'Cluster 02': 'com hp article posting nntp host sun att distribution ibm',
+ 'Cluster 03': 'gatech prism georgia technology institute mike atlanta hrivnak '
+               'gtd597a braves',
+ 'Cluster 04': 'car com cars bike new engine like good just article',
+ 'Cluster 05': 'israel people jews israeli government jewish arab armenian war '
+               'turkish',
+ 'Cluster 06': 'card video drivers bus monitor mit windows cards vga diamond',
+ 'Cluster 07': 'key clipper chip encryption com keys escrow government '
+               'algorithm security',
+ 'Cluster 08': 'nasa gov space jpl larc jsc shuttle center gsfc research',
+ 'Cluster 09': 'cs nyx colorado science university computer dept du utexas '
+               'posting',
+ 'Cluster 10': 'god jesus christian bible people christ christians church '
+               'believe faith',
+ 'Cluster 11': 'don people like just com know think article time good',
+ 'Cluster 12': 'org mitre article cactus bbs com monitor distribution don '
+               'cookson',
+ 'Cluster 13': 'fbi batf koresh waco com people government children atf '
+               'compound',
+ 'Cluster 14': 'drive scsi ide disk drives hard controller floppy hd com',
+ 'Cluster 15': 'game games espn baseball hockey columbia university cc gld '
+               'team',
+ 'Cluster 16': 'netcom cleveland cwru freenet com 408 reserve ins western 9760',
+ 'Cluster 17': 'uiuc cso illinois urbana uxa university news cobb article '
+               'irvine',
+ 'Cluster 18': 'university thanks mail posting host nntp know help sale state',
+ 'Cluster 19': 'team ca year game players hockey season win play nhl'}
 ```
 
 Two new files will appear in the current directory:
@@ -92,7 +94,9 @@ storage-tiny-log-search-api      ClusterIP   10.96.69.171    <none>        8080/
 storage-tiny-prometheus-hl-svc   ClusterIP   None            <none>        9090/TCP         3m9s
 ```
 
-MinIO Server is also available from _outside_ the VM on **port 30100** due to the NAT configuration defined in the `Vagrantfile`. The default root user is `minio` with password `minio123`:
+As you can see above, _MinIO Server_ is available on port **30100**, while _MinIO Console_ is available on port **30200**. These services will also be available from _outside_ the VM due to the NAT configuration that is defined in the `Vagrantfile`. The default root user is `minio` with password `minio123`:
+
+> `mc` is the [MinIO command line client](https://docs.min.io/docs/minio-client-quickstart-guide.html)
 
 ```
 $ mc alias set tiny http://localhost:30100 minio minio123 && mc --debug tree tiny
@@ -122,19 +126,19 @@ X-Xss-Protection: 1; mode=block
 mc: <DEBUG> Response Time:  3.774223ms
 ```
 
-In KServe, an `InferenceService` is the entity that encapsulates the low-level components that are required to deploy an AI model to production, for example, a model storage initializer, a _predictor_ service, and a _transformer_ service. More specifically, to deploy an `InferenceService` we need to:
+In KServe, an `InferenceService` is the entity that encapsulates the components that are required to deploy an AI model to production; for example, a model storage initializer, a _predictor_ service, and a _transformer_ service. More specifically, to deploy an `InferenceService` we need to:
 
-* Upload the `model.joblib` and `transformer.joblib` files to the object storage service.
-* Create the `Secret` and `ServiceAccount` resources required by KServe to connect to MinIO.
-* Create the `InferenceService` resource, including the `transformer` pre-processing step.
+- Upload the `model.joblib` and `transformer.joblib` files to the object storage service.
+- Create the `Secret` and `ServiceAccount` resources required by KServe to connect to MinIO.
+- Create the `InferenceService` resource, including the `transformer` pre-processing step.
 
 These steps can be automated with the `deploy_service.py` script, which takes the following arguments:
 
-* `--namespace`: Kubernetes namespace where the resources will be created.
-* `--model-path`: Path to the serialized model (joblib format).
-* `--model-name`: Descriptive name of the inference service.
-* ` --transformer-path`: Path to the serialized pre-processing transformer (joblib format).
-* `--transformer-image`: Name of the image that will be utilized to run containers for the [transformer pre-processing step](https://kserve.github.io/website/modelserving/v1beta1/transformer/torchserve_image_transformer/).
+- `--namespace`: Kubernetes namespace where the resources will be created.
+- `--model-path`: Path to the serialized model (joblib format).
+- `--model-name`: Descriptive name of the inference service.
+- ` --transformer-path`: Path to the serialized pre-processing transformer (joblib format).
+- `--transformer-image`: Name of the image that will be utilized to run containers for the [transformer pre-processing step](https://kserve.github.io/website/modelserving/v1beta1/transformer/torchserve_image_transformer/).
 
 In this particular text clustering example, the `--transformer-image` can be built from `transformer.Dockerfile`, which basically installs the package requirements and copies the `transformer.py` script to a Python 3.7 image:
 
@@ -156,6 +160,10 @@ vagrant@mlops-poc:~$ /home/vagrant/venv/bin/python /vagrant/scripts/deploy_servi
 2021-10-20 11:32:57 mlops-poc sh.command[59588] INFO <Command '/usr/local/bin/kubectl apply -n kserve-textclustering -f /tmp/tmpur69q815/s3-secrets.yaml', pid 59607>: process started
 2021-10-20 11:32:58 mlops-poc sh.command[59588] INFO <Command '/usr/local/bin/kubectl apply -n kserve-textclustering -f /tmp/tmpplwcgz2g/inference-service.yaml', pid 59620>: process started
 ```
+
+Below you can see the details of the `Secret`, `ServiceAccount` and `InferenceService` Kubernetes resources created by the script.
+
+Unlike in the case of the _transformer_, where we need to build an ad-hoc image, there is already a Scikit Learn _predictor_ server built into KServe. To avoid any unexpected issues when using the built-in servers, the models should be developed using the [same versions as Kserve](https://github.com/kserve/kserve/blob/v0.7.0/python/sklearnserver/setup.py).
 
 ```
 apiVersion: v1
@@ -200,70 +208,48 @@ spec:
     serviceAccountName: sa
 ```
 
-```
-vagrant@mlops-poc:~$ kubectl get inferenceservice/textclustering -n kserve-textclustering -o yaml
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
-metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"serving.kserve.io/v1beta1","kind":"InferenceService","metadata":{"annotations":{},"name":"textclustering","namespace":"kserve-textclustering"},"spec":{"predictor":{"serviceAccountName":"sa","sklearn":{"storageUri":"s3://textclustering"}},"transformer":{"containers":[{"env":[{"name":"STORAGE_URI","value":"s3://textclustering/transformer.joblib"}],"image":"agmangas/sklearn-transformer:latest","name":"textclustering-transformer"}],"serviceAccountName":"sa"}}}
-  creationTimestamp: "2021-10-20T11:33:00Z"
-  finalizers:
-  - inferenceservice.finalizers
-  generation: 1
-  name: textclustering
-  namespace: kserve-textclustering
-  resourceVersion: "37242"
-  uid: d64bd468-deab-4f70-aed7-e11eca535bdc
-spec:
-  predictor:
-    serviceAccountName: sa
-    sklearn:
-      name: kserve-container
-      protocolVersion: v1
-      resources:
-        limits:
-          cpu: "1"
-          memory: 2Gi
-        requests:
-          cpu: "1"
-          memory: 2Gi
-      runtimeVersion: v0.7.0
-      storageUri: s3://textclustering
-  transformer:
-    containers:
-    - env:
-      - name: STORAGE_URI
-        value: s3://textclustering/transformer.joblib
-      image: agmangas/sklearn-transformer:latest
-      name: kserve-container
-      resources:
-        limits:
-          cpu: "1"
-          memory: 2Gi
-        requests:
-          cpu: "1"
-          memory: 2Gi
-    serviceAccountName: sa
-[...]
-```
+Once deployed to Kubernetes, the `InferenceService` should be ready after a few minutes at most:
 
 ```
 vagrant@mlops-poc:~$ kubectl get inferenceservices -n kserve-textclustering
 NAME             URL                                                       READY   PREV   LATEST   PREVROLLEDOUTREVISION   LATESTREADYREVISION                      AGE
-textclustering   http://textclustering.kserve-textclustering.example.com   True           100                              textclustering-predictor-default-00001   7m25s
+textclustering   http://textclustering.kserve-textclustering.example.com   True           100                              textclustering-predictor-default-00001   29m
 
+vagrant@mlops-poc:~$ kubectl get deployments -n kserve-textclustering
+NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
+textclustering-predictor-default-00001-deployment     1/1     1            1           29m
+textclustering-transformer-default-00001-deployment   1/1     1            1           29m```
+```
+
+If any problems arise during this deployment process, you can get further information from the `Pod` logs and the `Revisions` for debugging purposes:
+
+```
 vagrant@mlops-poc:~$ kubectl get revisions -n kserve-textclustering
 NAME                                       CONFIG NAME                          K8S SERVICE NAME                           GENERATION   READY   REASON
 textclustering-predictor-default-00001     textclustering-predictor-default     textclustering-predictor-default-00001     1            True
 textclustering-transformer-default-00001   textclustering-transformer-default   textclustering-transformer-default-00001   1            True
 
+vagrant@mlops-poc:~$ kubectl describe revision/textclustering-transformer-default-00001 -n kserve-textclustering
+[...]
+Events:
+  Type     Reason         Age                From                 Message
+  ----     ------         ----               ----                 -------
+  Warning  InternalError  30m (x2 over 32m)  revision-controller  failed to update deployment "textclustering-transformer-default-00001-deployment": Operation cannot be fulfilled on deployments.apps "textclustering-transformer-default-00001-deployment": the object has been modified; please apply your changes to the latest version and try again
+[...]
+
 vagrant@mlops-poc:~$ kubectl get pods -n kserve-textclustering
 NAME                                                              READY   STATUS    RESTARTS   AGE
-textclustering-predictor-default-00001-deployment-9ff8f8d9vphhq   2/2     Running   0          2m31s
-textclustering-transformer-default-00001-deployment-74669cqc56s   2/2     Running   0          2m31s
+textclustering-predictor-default-00001-deployment-6f5d65f99qrwr   2/2     Running   0          37m
+textclustering-transformer-default-00001-deployment-6ddcbbjdvpj   2/2     Running   0          37m
+
+vagrant@mlops-poc:~$ kubectl logs -n kserve-textclustering textclustering-predictor-default-00001-deployment-6f5d65f99qrwr --all-containers
+[...]
+[I 211021 08:10:36 credentials:1102] Found credentials in environment variables.
+[I 211021 08:10:36 storage:85] Successfully copied s3://textclustering to /mnt/models
+[...]
 ```
+
+At this point, the `textclustering` _inference service_ is finally ready to serve requests to the text clustering model. There is an example request below that uses the [V1 Data Plane protocol](textclustering) interface. Note how the raw document goes through the _transformer_ for feature extraction before being fed to the clustering model.
 
 ```
 $ curl -v \
@@ -277,18 +263,18 @@ http://localhost:30300/v1/models/textclustering:predict \
 > Host: textclustering.kserve-textclustering.example.com
 > User-Agent: curl/7.68.0
 > Accept: */*
-> Content-Length: 333
+> Content-Length: 176
 > Content-Type: application/x-www-form-urlencoded
 >
-* upload completely sent off: 333 out of 333 bytes
+* upload completely sent off: 176 out of 176 bytes
 * Mark bundle as not supporting multiuse
 < HTTP/1.1 200 OK
 < content-length: 20
 < content-type: application/json; charset=UTF-8
-< date: Wed, 20 Oct 2021 11:52:42 GMT
+< date: Thu, 21 Oct 2021 08:14:20 GMT
 < server: istio-envoy
-< x-envoy-upstream-service-time: 18
+< x-envoy-upstream-service-time: 14
 <
 * Connection #0 to host localhost left intact
-{"predictions": [5]}
+{"predictions": [0]}
 ```
